@@ -19,6 +19,6 @@ body {
   margin-bottom: 16px;
 }
 
-/* .country-list {
+ul {
   list-style: none;
-} */
+}
