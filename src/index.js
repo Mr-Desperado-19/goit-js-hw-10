@@ -1,62 +1,107 @@
 import './css/styles.css';
 import Notiflix from 'notiflix';
-// import { fetchCountries } from './fetchCountries.js';
 import debounce from 'lodash.debounce';
 
 const DEBOUNCE_DELAY = 300;
-
 const searchBox = document.querySelector('#search-box');
 const countryList = document.querySelector('.country-list');
 const countryInfo = document.querySelector('.country-info');
+const BASE_URL = 'https://restcountries.com/v3.1';
+const END_POINT = '/name';
 
 searchBox.addEventListener('input', debounce(onSearch, DEBOUNCE_DELAY));
 
-function onSearch() {
-  const searchQuery = searchBox.value.trim();
+async function onSearch(event) {
+  const name = event.target.value.trim();
 
-  if (searchQuery === '') {
-    clearMarkup();
+  if (!name) {
+    clearResults();
     return;
   }
 
-  fetchCountries(searchQuery)
-    .then(countries => {
-      if (countries.length > 10) {
-        Notiflix.Notify.info('Too many matches found. Please enter a more specific name.');
-      } else if (countries.length > 1) {
-        renderCountryList(countries);
-      } else if (countries.length === 1) {
-        renderCountryInfo(countries[0]);
-      } else {
-        clearMarkup();
-        Notiflix.Notify.failure('Oops, there is no country with that name');
-      }
-    })
-    .catch(error => {
-      console.log(error);
-      Notiflix.Notify.failure('Oops, something went wrong!');
-    });
+  try {
+    const countries = await fetchCountries(name);
+
+    if (countries.length > 10) {
+      Notiflix.Notify.info('Too many matches found. Please enter a more specific name.');
+      clearResults();
+      return;
+    }
+
+    if (countries.length >= 2 && countries.length <= 10) {
+      renderCountryList(countries);
+      clearCountryInfo();
+      return;
+    }
+
+    if (countries.length === 1) {
+      renderCountryInfo(countries[0]);
+      clearCountryList();
+      return;
+    }
+
+    Notiflix.Notify.info('Oops, there is no country with that name.');
+    clearResults();
+  } catch (error) {
+    console.error(error);
+    Notiflix.Notify.failure('Failed to fetch countries');
+  }
 }
 
-function clearMarkup() {
-  countryList.innerHTML = '';
-  countryInfo.innerHTML = '';
+async function fetchCountries(name) {
+  const url = `${BASE_URL}${END_POINT}/${name}?fields=name.official,capital,population,flags.svg,languages`;
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error(`Country not found: ${name}`);
+    }
+    throw new Error(`Failed to fetch countries: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data;
 }
 
 function renderCountryList(countries) {
-  clearMarkup();
-  const markup = countries.map(country => `<li>${country.name.official}</li>`).join('');
-  countryList.insertAdjacentHTML('beforeend', markup);
+  countryList.innerHTML = '';
+  countryInfo.innerHTML = '';
+  const countryListItems = countries.map((country) => {
+    const { name: { official }, flags: { svg } } = country;
+
+    return `
+      <li>
+        <img src="${svg}" alt="${official} flag" width="50">
+        <span>${official}</span>
+      </li>
+    `;
+  });
+
+  countryList.innerHTML = countryListItems.join('');
 }
 
 function renderCountryInfo(country) {
-  clearMarkup();
-  const markup = `
-    <h2>${country.name.official}</h2>
-    <p>Capital: ${country.capital}</p>
-    <p>Population: ${country.population}</p>
-    <img src="${country.flags.svg}" alt="Flag of ${country.name.official}">
-    <p>Languages: ${country.languages.map(lang => lang.name).join(', ')}</p>
+  const { name: { official }, capital, population, flags: { svg }, languages } = country;
+  const languageNames = languages.map((language) => language.name).join(', ');
+
+  countryInfo.innerHTML = `
+    <h2>${official}</h2>
+    <p>Capital: ${capital}</p>
+    <p>Population: ${population}</p>
+    <p>Languages: ${languageNames}</p>
+    <img src="${svg}" alt="${official} flag" width="200">
   `;
-  countryInfo.insertAdjacentHTML('beforeend', markup);
+}
+
+function clearCountryList() {
+  countryList.innerHTML = '';
+}
+
+function clearCountryInfo() {
+  countryInfo.innerHTML = '';
+}
+
+function clearResults() {
+  clearCountryList();
+  clearCountryInfo();
 }
