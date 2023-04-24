@@ -1,8 +1,8 @@
 const BASE_URL = 'https://restcountries.com/v3.1';
 const END_POINT = '/name';
 
-export async function fetchCountries(name) {
-  const url = `${BASE_URL}${END_POINT}/${name}?fields=name.official,capital,population,flags.svg,languages`;
+async function fetchCountries(name) {
+  const url = `${BASE_URL}${END_POINT}/${name}?fields=name,capital,population,flags,languages`;
   const response = await fetch(url);
 
   if (!response.ok) {

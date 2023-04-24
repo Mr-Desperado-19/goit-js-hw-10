@@ -49,7 +49,7 @@ async function onSearch(event) {
 }
 
 async function fetchCountries(name) {
-  const url = `${BASE_URL}${END_POINT}/${name}?fields=name.official,capital,population,flags.svg,languages`;
+  const url = `${BASE_URL}${END_POINT}/${name}?fields=name,capital,population,flags,languages`;
   const response = await fetch(url);
 
   if (!response.ok) {
@@ -82,13 +82,12 @@ function renderCountryList(countries) {
 
 function renderCountryInfo(country) {
   const { name: { official }, capital, population, flags: { svg }, languages } = country;
-  const languageNames = languages.map((language) => language.name).join(', ');
 
   countryInfo.innerHTML = `
     <h2>${official}</h2>
     <p>Capital: ${capital}</p>
     <p>Population: ${population}</p>
-    <p>Languages: ${languageNames}</p>
+    <p>Languages: ${languages}</p>
     <img src="${svg}" alt="${official} flag" width="200">
   `;
 }
@@ -105,3 +104,5 @@ function clearResults() {
   clearCountryList();
   clearCountryInfo();
 }
+
+export { fetchCountries };
